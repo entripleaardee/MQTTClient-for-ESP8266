@@ -1,0 +1,160 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <Crypto.h>
+#include <string.h>
+#include <ArduinoJson.h>
+#include <PubSubClient.h>
+const char* server="104.215.182.41";
+const int port=1883;
+const char* ssid = "gopi";
+const char* password = "gopi1234";
+int httpCode=0;
+String unique_string="";
+String uuid="";
+String base_url="https://devid.datacultr.com";
+WiFiClient client;
+PubSubClient mqttclient(client);
+HTTPClient https;
+void setup() {
+  Serial.begin(9600);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");  
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Netmask: ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+  Serial.println("----------------------------");
+  SHA256 hasher;
+  StaticJsonDocument<100> def;
+  def["username"]="jio";
+  def["password"]="jio";
+  String credentials="";
+  
+  serializeJson(def,credentials);
+  Serial.println(credentials);
+  const char * cred = credentials.c_str();
+  hasher.doUpdate(cred, strlen(cred));
+  byte hash[SHA256_SIZE];
+  hasher.doFinal(hash);
+  char hsh[SHA256_SIZE];
+  String hashed="";
+  for (byte i=0; i < SHA256_SIZE; i++)
+  {
+      if (hash[i]<0x10) { Serial.print('0'); hashed=hashed+"0";}
+      Serial.print(hash[i], HEX);
+      hashed=hashed+String(hash[i], HEX);
+  }
+  Serial.println();
+  Serial.println(hashed);
+  StaticJsonDocument<300> sdoc;
+  sdoc["key"] = hashed;
+  sdoc["device_id"] = "12345";
+  sdoc["v"] = 1;
+  String stringdoc="";
+  serializeJson(sdoc,stringdoc);
+  Serial.println(stringdoc);
+  https.begin("https://devid.datacultr.com/api/v1/get_access_key/", "F9 F2 95 BD 76 D4 24 1F FE 25 9B CC 26 BC 13 E7 63 58 C3 9C");
+  https.setTimeout(20000);
+  https.addHeader("Content-Type", "application/json");
+  int httpCode = https.POST(stringdoc);
+  Serial.print("POSTED WITH CODE : ");
+  Serial.println(httpCode);
+  delay(10);
+  const char * response = https.getString().c_str();
+  String stresp=https.getString();
+
+  Serial.println(response);
+
+  https.end();
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, stresp);
+  JsonObject obj = doc.as<JsonObject>();
+  String response2 = obj[String("content")];
+  Serial.println(response2);
+  DynamicJsonDocument doc2(1024);
+  deserializeJson(doc2, response2);
+  JsonObject obj2 = doc2.as<JsonObject>();
+  String unique_string = obj2[String("unique_string")];
+  String device_uuid = obj2[String("device_uuid")];
+  Serial.println(unique_string);
+  Serial.println(device_uuid);
+  String md5="bfdddb3c862099381ac6f7e946fd513a";
+  String auth=md5+device_uuid+unique_string;
+  Serial.println(auth);
+  SHA256 hasher2;
+  const char * cred2 = auth.c_str();
+  hasher2.doUpdate(cred2, strlen(cred2));
+  byte hash2[SHA256_SIZE];
+  hasher2.doFinal(hash2);
+  String hashed2="";
+  for (byte i=0; i < SHA256_SIZE; i++)
+  {
+      if (hash2[i]<0x10) { Serial.print('0'); hashed2=hashed2+"0";}
+      Serial.print(hash2[i], HEX);
+      hashed2=hashed2+String(hash2[i], HEX);
+  }
+  Serial.println();
+  Serial.println(hashed2);
+
+  
+  StaticJsonDocument<300> s2doc;
+  s2doc["key"] = hashed2;
+  s2doc["device_id"] = "12345";
+  s2doc["v"] = 1;
+  s2doc["brand"] = "lyf";
+  s2doc["model"] = "BA123";
+  String string2doc="";
+  serializeJson(s2doc,string2doc);
+  Serial.println(string2doc); 
+  https.begin("https://devid.datacultr.com/api/v1/authenticate_sdk/", "F9 F2 95 BD 76 D4 24 1F FE 25 9B CC 26 BC 13 E7 63 58 C3 9C");
+  https.setTimeout(20000);
+
+
+  https.addHeader("Content-Type", "application/json");
+  
+  httpCode = https.POST(string2doc);
+  Serial.print("POSTED WITH CODE : ");
+  Serial.println(httpCode);
+  String r=https.getString();
+  Serial.println(r);
+  delay(10);
+  DynamicJsonDocument doc3(1024);
+  deserializeJson(doc3, r);
+  JsonObject obj3 = doc3.as<JsonObject>();
+  String response3 = obj3[String("content")];
+  DynamicJsonDocument doc4(1024);
+  deserializeJson(doc4, response3);
+  JsonObject obj4 = doc4.as<JsonObject>();
+  String client_id = obj4[String("client_id")];
+  String key = obj4[String("token")];
+  mqttclient.setServer(server, port);
+  const char * username = client_id.c_str();
+  const char * password = key.c_str();
+  Serial.print("client id :- ");
+  Serial.println(client_id);
+    while (!mqttclient.connected()) {
+    Serial.println("Connecting to MQTT...");
+    if (mqttclient.connect(username, username, password)) {
+      Serial.println("connected");
+      Serial.println(mqttclient.state());
+    } else {
+      Serial.print("failed with state ");
+      Serial.print(mqttclient.state());
+      delay(2000);
+    }
+  }
+}
+void loop() {
+ delay(10);
+}
