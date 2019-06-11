@@ -1,0 +1,52 @@
+#include <ArduinoJson.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+String ssid = "claymotion5GHz";
+String password = "spectra123";
+const char* mqttServer = "104.215.182.41";
+const int mqttPort = 1883;
+const char* mqttUser = "North_INc23e54ac9729";
+const char* mqttPassword = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWJzY3JpcHRpb25fdG9waWNzIjpbIi9seWYvQkExMjMvYzIzZTU0YWM5NzI5Il0sImRldmljZV91dWlkIjoiMmFFNGlqaE1IMjVnUkdGTWk4ZmFDNGVTcktFOEE1QjJMTWpEZG9ER2NsUT0iLCJwdWJsaXNoX3RvcGljcyI6W10sImNsaWVudF9pZCI6InhweTkwR1htYUFTK2ZsOTBvY2ZMYVRjS2x1eWtEdmlPa09hcWU1WXV1VlNoZDdpSEdHUlo0TmxYalN4N1VLakwiLCJleHAiOjE1OTE3MDE2NzEsInNkayI6IkFQSVVHcU15NlI1R0h1K3dHTnhJN1k2anl1ZzR6K3loRDJvMVpxTG9oV3VuZHVWaVZpVjNxZ0ZsTEFrZEo4VU8iLCJtZDUiOiIwU1l6Vno4Ynp6M0dpdkxmRW5xanE2M0RnbHRpN25SRTJqT1o4aGl0OG50cHhVNkhqYVVBaTBaNVhxRExVRkVZWmdmR0VOM2g5ZGdkRTI2ZG9wbi9Rdz09In0.vv2W2bJHZHMPVxRyCOGlutoMG_VMDz-TK4F2JhdUSC8";
+WiFiClient wclient;
+PubSubClient mqttclient(wclient);
+void setup()
+{
+  Serial.begin(9600);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  randomSeed(micros());
+  Serial.println("");
+  Serial.println("WiFi connected");  
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Netmask: ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+  Serial.println("----------------------------");
+  mqttclient.setServer(mqttServer, mqttPort);
+  while (!mqttclient.connected()) {
+    Serial.println("Connecting to MQTT...");
+   
+    if (mqttclient.connect(mqttUser, mqttUser, mqttPassword)) {
+ 
+      Serial.println("connected");
+      Serial.println(mqttclient.state());
+ 
+    } else {
+      Serial.print("failed with state ");
+      Serial.print(mqttclient.state());
+      delay(2000);
+    }
+  }
+}
+void loop()
+{
+}
